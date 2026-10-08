@@ -237,5 +237,6 @@ app.delete('/api/users/:id', auth, need('admin'), (q, r) => {
 });
 
 require('./extra')({ app, db, save, uid, clean, notify, ranks, grp, E, auth, need, isStaff, dropGroup, crypto, fs, path });
+require('./dm')({ app, db, save, uid, notify, E, auth, need, isStaff });
 app.use(express.static(path.join(__dirname, 'public')));
 app.listen(PORT, '0.0.0.0', () => console.log('\nClassPod يعمل على http://localhost:' + PORT + '\n'));
