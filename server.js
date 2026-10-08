@@ -203,6 +203,7 @@ app.post('/api/notifications/read', auth, (q, r) => { db.notifications.forEach(n
 
 app.post('/api/codes/:which', auth, (q, r) => {
   const w = q.params.which;
+  if ((w === 'student' && process.env.STUDENT_CODE) || (w === 'teacher' && process.env.TEACHER_CODE)) return E(r, 400, 'هذا الرمز ثابت من إعدادات الخادم');
   if (w === 'student' && isStaff(q.user)) db.school.studentCode = newCode();
   else if (w === 'teacher' && q.user.role === 'admin') db.school.teacherCode = newCode();
   else return E(r, 403, 'ليست لديك صلاحية');
@@ -238,5 +239,13 @@ app.delete('/api/users/:id', auth, need('admin'), (q, r) => {
 
 require('./extra')({ app, db, save, uid, clean, notify, ranks, grp, E, auth, need, isStaff, dropGroup, crypto, fs, path });
 require('./dm')({ app, db, save, uid, notify, E, auth, need, isStaff });
+{
+  const e = process.env;
+  if (e.STUDENT_CODE) db.school.studentCode = String(e.STUDENT_CODE).trim();
+  if (e.TEACHER_CODE) db.school.teacherCode = String(e.TEACHER_CODE).trim();
+  if (e.ADMIN_CODE) { const a = db.users.find(u => u.role === 'admin'); if (a) a.code = String(e.ADMIN_CODE).trim(); }
+  save();
+  if (e.STUDENT_CODE || e.TEACHER_CODE || e.ADMIN_CODE) console.log('الرموز الثابتة من الإعدادات مفعّلة');
+}
 app.use(express.static(path.join(__dirname, 'public')));
 app.listen(PORT, '0.0.0.0', () => console.log('\nClassPod يعمل على http://localhost:' + PORT + '\n'));
