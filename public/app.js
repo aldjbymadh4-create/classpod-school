@@ -2,6 +2,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let quiz = false, S = null, tab = 'home', view = null, creating = false, lastHash = '', notifs = [], adminData = null, shown = '', loginStep = 'welcome', pubClasses = [], curClass = null;
 const ROLE = { admin: 'مسؤولة النظام', teacher: 'معلم', student: 'طالب' };
+let authMode = 'login';
 if (localStorage.dark === '1') document.body.classList.add('dark');
 
 async function api(url, method = 'GET', body) {
@@ -35,37 +36,82 @@ async function load(force) {
   } catch { if (!S) render(); }
 }
 
-async function step(s) { loginStep = s; if (s === 'student') { try { pubClasses = await api('/api/classes'); } catch (e) { } } render(); }
 function loginView() {
-  const back = `<br><br><button class="btn ghost sm" onclick="step('welcome')">→ رجوع</button>`;
-  const f = (id, l, ph, extra = '') => `<label>${l}</label><input id="${id}" placeholder="${ph}" ${extra}>`;
-  const steps = {
-    welcome: `<div class="floaty"><span>📚</span><span>🏆</span><span>⭐</span><span>💬</span></div>
-      <img class="pop" src="logo.png" onerror="this.style.display='none'"><h1>أهلاً بك في ClassPod</h1>
-      <p class="fade">كلاس بود · أم القرى الثانوية<br>مجموعتك، نقاطك، وترتيبك بين الأفضل 🏆</p>
-      <div class="card"><button class="btn" onclick="step('student')">🎒 أنا طالب</button><br><br>
-      <button class="btn" onclick="step('teacher')">👨‍🏫 أنا معلم</button><br><br>
-      <button class="btn ghost" onclick="step('admin')">🛡️ المسؤولة</button></div>`,
-    student: `<div class="floaty"><span>🎒</span></div><h1>أهلاً بالطالب</h1><div class="card">
-      ${f('cc', 'رمز دخول الطلاب', '000000', 'inputmode="numeric"')}${f('sn', 'اسمك', 'اكتب اسمك', 'maxlength="40"')}${f('nt', 'جنسيتك', 'مثال: سعودي', 'maxlength="30"')}
-      <label>فصلك</label><select id="cl">${pubClasses.map(c => `<option value="${c.id}">${esc(c.grade)} · ${esc(c.name)}</option>`).join('')}</select>
-      <button class="btn" onclick="doJoin('student')">دخول 🚀</button>${back}</div>`,
-    teacher: `<div class="floaty"><span>👨‍🏫</span></div><h1>أهلاً بالمعلم</h1><div class="card">
-      ${f('cc', 'رمز دخول المعلم', '000000', 'inputmode="numeric"')}${f('sn', 'اسمك', 'اكتب اسمك', 'maxlength="40"')}${f('nt', 'جنسيتك', 'مثال: سعودي', 'maxlength="30"')}
-      <button class="btn" onclick="doJoin('teacher')">دخول</button>${back}</div>`,
-    admin: `<h1>دخول المسؤولة</h1><div class="card">${f('code', 'رمزك الخاص', 'الرمز', 'inputmode="numeric" onkeydown="if(event.key===\'Enter\')doLogin()"')}
-      <button class="btn" onclick="doLogin()">دخول</button><p class="mut">تسجيل الدخول بحساب Microsoft سيُضاف لاحقاً.</p>${back}</div>`
-  };
-  $('#app').innerHTML = `<div class="login">${steps[loginStep]}</div>`;
+  const f = (id, label, placeholder, extra = '') =>
+    `<label>${label}</label><input id="${id}" placeholder="${placeholder}" ${extra}>`;
+
+  const header = `<div class="floaty"><span>📚</span><span>🏆</span><span>⭐</span><span>💬</span></div>
+    <img class="pop" src="logo.png" onerror="this.style.display='none'">
+    <h1>أهلاً بك في ClassPod</h1>
+    <p class="fade">كلاس بود · مدرسة أم القرى<br>مجموعتك، نقاطك، وترتيبك بين الأفضل 🏆</p>`;
+
+  let form;
+  if (authMode === 'login') {
+    form = `<div class="card"><h3>تسجيل الدخول</h3>
+      ${f('authName', 'الاسم', 'اكتب اسم الحساب', 'maxlength="40" autocomplete="username"')}
+      ${f('authPassword', 'كلمة المرور', 'اكتب كلمة المرور', 'type="password" maxlength="128" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')doLogin()"')}
+      <button class="btn" onclick="doLogin()">دخول 🚀</button>
+      <p class="mut">أول مرة تستخدم التطبيق؟</p>
+      <button class="btn ghost" onclick="authMode='signup';render()">إنشاء حساب جديد</button></div>`;
+  } else {
+    form = `<div class="card"><h3>إنشاء حساب جديد</h3>
+      ${f('authName', 'الاسم', 'اختر اسمًا للحساب', 'maxlength="40" autocomplete="username"')}
+      ${f('authPassword', 'كلمة المرور', '8 أحرف على الأقل', 'type="password" minlength="8" maxlength="128" autocomplete="new-password"')}
+      ${f('authCode', 'رمز الدخول', 'أدخل الرمز الذي حصلت عليه', 'inputmode="numeric" maxlength="20" oninput="toggleStudentFields()"')}
+      <div id="studentFields" style="display:none">
+        <p class="mut">المدرسة: مدرسة أم القرى</p>
+        <label>المرحلة الدراسية</label>
+        <select id="authGrade"><option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option></select>
+        <label>رقم الفصل</label>
+        <select id="authClassNumber">${Array.from({length:9}, (_, i) => `<option value="${i+1}">فصل ${i+1}</option>`).join('')}</select>
+      </div>
+      <button class="btn" onclick="doJoin()">إنشاء الحساب 🚀</button>
+      <button class="btn ghost" onclick="authMode='login';render()">لدي حساب بالفعل</button></div>`;
+  }
+  $('#app').innerHTML = `<div class="login">${header}${form}</div>`;
 }
-async function doLogin() { try { await api('/api/login', 'POST', { code: $('#code').value }); tab = 'home'; view = null; await load(true); } catch (e) { toast(e.message); } }
-async function doJoin(role) {
+
+function toggleStudentFields() {
+  const code = $('#authCode'), fields = $('#studentFields');
+  if (code && fields) fields.style.display = code.value.trim() === '0000' ? 'block' : 'none';
+}
+
+async function doLogin() {
   try {
-    await api('/api/join', 'POST', { role, code: $('#cc').value, name: $('#sn').value, nationality: $('#nt').value, classId: role === 'student' ? $('#cl').value : undefined });
-    tab = 'home'; view = null; await load(true);
+    await api('/api/login', 'POST', {
+      name: $('#authName').value,
+      password: $('#authPassword').value
+    });
+    authMode = 'login';
+    tab = 'home';
+    view = null;
+    await load(true);
   } catch (e) { toast(e.message); }
 }
-const logout = async () => { await api('/api/logout', 'POST'); S = null; lastHash = ''; loginStep = 'welcome'; render(); };
+
+async function doJoin() {
+  try {
+    await api('/api/join', 'POST', {
+      name: $('#authName').value,
+      password: $('#authPassword').value,
+      code: $('#authCode').value.trim(),
+      grade: $('#authGrade')?.value,
+      classNumber: $('#authClassNumber')?.value
+    });
+    authMode = 'login';
+    tab = 'home';
+    view = null;
+    await load(true);
+  } catch (e) { toast(e.message); }
+}
+
+const logout = async () => {
+  await api('/api/logout', 'POST');
+  S = null;
+  lastHash = '';
+  authMode = 'login';
+  render();
+};
 
 function go(t) { tab = t; view = null; creating = false; quiz = false; if (t === 'notif') loadNotifs(); render(); }
 function open_(id, sub) { view = { id, sub: sub || 'chat' }; shown = ''; render(); }
@@ -195,7 +241,7 @@ async function loadAdmin() {
   $('#adm').innerHTML = `<div class="card"><h3>الفصول</h3>${S.classes.map(c => `<div class="row" style="margin-bottom:6px"><span class="sp">${esc(c.grade)} · ${esc(c.name)}</span><button class="btn bad sm" onclick="delClass('${c.id}')">حذف</button></div>`).join('')}
     <label>الصف</label><select id="cg"><option>أول ثانوي</option><option>ثاني ثانوي</option><option>ثالث ثانوي</option></select>
     <label>اسم الفصل</label><input id="cn" placeholder="مثال: فصل 3"><button class="btn" onclick="addClass()">إضافة فصل</button></div>` +
-    adminData.map(u => `<div class="card row"><div class="sp"><h3>${esc(u.name)}</h3><span class="mut">${ROLE[u.role]}${u.classId ? ' · ' + esc(clsLabel(u.classId)) : ''}${u.nationality ? ' · ' + esc(u.nationality) : ''}${u.code ? ' · الرمز: ' + esc(u.code) : ''}</span></div>
+    adminData.map(u => `<div class="card row"><div class="sp"><h3>${esc(u.name)}</h3><span class="mut">${ROLE[u.role]}${u.classId ? ' · ' + esc(clsLabel(u.classId)) : ''}${u.nationality ? ' · ' + esc(u.nationality) : ''}${u.createdAt ? ' · أُنشئ: ' + new Date(u.createdAt).toLocaleDateString('ar-SA') : ' · حساب قديم'}</span></div>
     <button class="btn ghost sm" onclick="renUser('${u.id}')">الاسم</button>${u.role !== 'admin' ? `<button class="btn bad sm" onclick="delUser('${u.id}')">حذف</button>` : ''}</div>`).join('');
 }
 const adm = fn => async () => { try { await fn(); await load(true); await loadAdmin(); } catch (e) { toast(e.message); } };
