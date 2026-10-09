@@ -1,4 +1,4 @@
-const CACHE_NAME = 'classpod-v3-20261009';
+const CACHE_NAME = 'classpod-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -9,7 +9,6 @@ const ASSETS_TO_CACHE = [
   '/app5.js',
   '/dm.js',
   '/pwa.js',
-  '/v2.js',
   '/icon-192.png',
   '/icon-512.png'
 ];
