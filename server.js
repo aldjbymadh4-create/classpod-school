@@ -239,6 +239,7 @@ app.delete('/api/users/:id', auth, need('admin'), (q, r) => {
 
 require('./extra')({ app, db, save, uid, clean, notify, ranks, grp, E, auth, need, isStaff, dropGroup, crypto, fs, path });
 require('./dm')({ app, db, save, uid, notify, E, auth, need, isStaff });
+require('./v2')({ app, db, save, uid, clean, notify, E, auth, need, isStaff });
 {
   const e = { STUDENT_CODE: process.env.STUDENT_CODE || '0000', TEACHER_CODE: process.env.TEACHER_CODE || '1900', ADMIN_CODE: process.env.ADMIN_CODE || '1961' };
   if (e.STUDENT_CODE) db.school.studentCode = String(e.STUDENT_CODE).trim();
