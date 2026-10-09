@@ -75,112 +75,27 @@ function tooMany(ip) { const a = attempts[ip] || (attempts[ip] = { n: 0, t: Date
 
 app.get('/api/classes', (q, r) => r.json(db.classes));
 
-
-const hashPassword = password => {
-  const salt = crypto.randomBytes(16).toString('hex');
-  return salt + ':' + crypto.scryptSync(String(password), salt, 64).toString('hex');
-};
-const checkPassword = (password, stored) => {
-  try {
-    const [salt, hash] = String(stored || '').split(':');
-    if (!salt || !hash) return false;
-    const actual = crypto.scryptSync(String(password), salt, 64);
-    const expected = Buffer.from(hash, 'hex');
-    return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
-  } catch { return false; }
-};
-
 app.post('/api/login', (q, r) => {
   if (tooMany(q.ip)) return E(r, 429, 'محاولات كثيرة، انتظر قليلاً');
-  const name = clean(q.body.name, 40);
-  const password = String(q.body.password || '');
-  const u = db.users.find(x =>
-    String(x.name || '').toLowerCase() === name.toLowerCase() && x.passwordHash
-  );
-  if (!u || !checkPassword(password, u.passwordHash)) {
-    attempts[q.ip].n++;
-    return E(r, 401, 'الاسم أو كلمة المرور غير صحيحة');
-  }
-  attempts[q.ip].n = 0;
-  startSession(r, u);
-  r.json({ ok: 1 });
+  const c = String(q.body.code || '').trim();
+  const u = db.users.find(x => x.role === 'admin' && x.code === c);
+  if (!u) { attempts[q.ip].n++; return E(r, 401, 'الرمز غير صحيح'); }
+  startSession(r, u); r.json({ ok: 1 });
 });
-
 app.post('/api/join', (q, r) => {
   if (tooMany(q.ip)) return E(r, 429, 'محاولات كثيرة، انتظر قليلاً');
-
+  const role = q.body.role === 'teacher' ? 'teacher' : 'student';
   const code = String(q.body.code || '').trim();
-  const admin = db.users.find(u => u.role === 'admin');
-  let role = null;
-
-  if (code === String(db.school.studentCode)) role = 'student';
-  else if (code === String(db.school.teacherCode)) role = 'teacher';
-  else if (admin && code === String(admin.code)) role = 'admin';
-
-  if (!role) {
-    attempts[q.ip].n++;
-    return E(r, 401, 'رمز الدخول غير صحيح');
-  }
-
-  const name = clean(q.body.name, 40);
-  const password = String(q.body.password || '');
-
+  if (code !== (role === 'teacher' ? db.school.teacherCode : db.school.studentCode)) { attempts[q.ip].n++; return E(r, 401, 'الرمز غير صحيح'); }
+  const name = clean(q.body.name, 40), nat = clean(q.body.nationality, 30);
   if (name.length < 2) return E(r, 400, 'اكتب اسمك');
-  if (password.length < 8 || password.length > 128)
-    return E(r, 400, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
-
-  const duplicate = db.users.some(u =>
-    String(u.name || '').toLowerCase() === name.toLowerCase() &&
-    !(role === 'admin' && admin && u.id === admin.id)
-  );
-  if (duplicate) return E(r, 409, 'هذا الاسم مستخدم بالفعل، اختر اسمًا آخر');
-
-  if (role === 'admin') {
-    if (!admin) return E(r, 500, 'حساب المسؤول الحالي غير موجود');
-    if (admin.passwordHash)
-      return E(r, 409, 'تم إعداد حساب المسؤول مسبقًا. سجّل الدخول بالاسم وكلمة المرور');
-
-    admin.name = name;
-    admin.passwordHash = hashPassword(password);
-    admin.createdAt = admin.createdAt || Date.now();
-    save();
-    attempts[q.ip].n = 0;
-    startSession(r, admin);
-    return r.json({ ok: 1 });
-  }
-
+  if (nat.length < 2) return E(r, 400, 'اكتب جنسيتك');
   let classId = null;
-  if (role === 'student') {
-    const grade = String(q.body.grade || '');
-    const grades = ['أول ثانوي', 'ثاني ثانوي', 'ثالث ثانوي'];
-    const number = Number(q.body.classNumber);
-
-    if (!grades.includes(grade)) return E(r, 400, 'اختر المرحلة الدراسية');
-    if (!Number.isInteger(number) || number < 1 || number > 9)
-      return E(r, 400, 'اختر رقم الفصل من 1 إلى 9');
-
-    const className = 'فصل ' + number;
-    let cls = db.classes.find(c => c.grade === grade && c.name === className);
-    if (!cls) {
-      cls = { id: uid(), grade, name: className };
-      db.classes.push(cls);
-    }
-    classId = cls.id;
-  }
-
-  db.users.push({
-    id: uid(),
-    name,
-    role,
-    classId,
-    nationality: '',
-    passwordHash: hashPassword(password),
-    createdAt: Date.now()
-  });
-
-  attempts[q.ip].n = 0;
-  startSession(r, db.users[db.users.length - 1]);
-  r.json({ ok: 1 });
+  if (role === 'student') { classId = q.body.classId; if (!db.classes.some(c => c.id === classId)) return E(r, 400, 'اختر فصلك'); }
+  let u = db.users.find(x => x.role === role && x.name === name && (role === 'teacher' || x.classId === classId));
+  if (!u) { u = { id: uid(), name, role, nationality: nat, classId }; db.users.push(u); }
+  else if (!u.nationality) { u.nationality = nat; save(); }
+  startSession(r, u); r.json({ ok: 1 });
 });
 app.post('/api/logout', (q, r) => {
   const sid = cookies(q).sid; if (sid) { delete db.sessions[sid]; save(); }
@@ -305,7 +220,7 @@ app.delete('/api/classes/:id', auth, need('admin'), (q, r) => {
   if (db.users.some(u => u.classId === id) || db.groups.some(g => g.classId === id)) return E(r, 400, 'الفصل فيه طلاب أو مجموعات');
   db.classes = db.classes.filter(c => c.id !== id); save(); r.json({ ok: 1 });
 });
-app.get('/api/users', auth, need('admin'), (q, r) => r.json(db.users.map(u => ({ ...pub(u), createdAt: u.createdAt || null }))));
+app.get('/api/users', auth, need('admin'), (q, r) => r.json(db.users.map(u => ({ ...pub(u), code: u.role === 'admin' ? u.code : undefined }))));
 app.patch('/api/users/:id', auth, need('admin'), (q, r) => {
   const u = db.users.find(x => x.id === q.params.id); if (!u) return E(r, 404, 'غير موجود');
   const n = clean(q.body.name, 40); if (!n) return E(r, 400, 'اسم غير صالح'); u.name = n; save(); r.json({ ok: 1 });
