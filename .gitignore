@@ -2,3 +2,7 @@
 data/
 node_modules/
 *.log
+backup-auth/
+*.py
+*.bak
+,*
