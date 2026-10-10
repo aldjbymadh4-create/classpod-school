@@ -82,3 +82,35 @@ header{gap:8px}header .brand{flex:1;justify-content:center}
 .ring{--p:0;width:60px;height:60px;border-radius:50%;background:conic-gradient(var(--pri2) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;position:relative;flex:none}
 .ring::before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--card)}
 .ring span{position:relative;font-weight:800;font-size:13px}
+.lgw{position:fixed;inset:0;z-index:50;overflow:auto;background:linear-gradient(180deg,#fff 0,#f3f6ff 100%);font-family:'Cairo','Tajawal',system-ui,sans-serif;color:#14224a}
+.lgw::before,.lgw::after{content:"";position:fixed;width:340px;height:340px;border-radius:50%;pointer-events:none}
+.lgw::before{top:-170px;left:-120px;background:radial-gradient(circle,#4b86ff55,transparent 70%)}
+.lgw::after{bottom:-190px;right:-120px;background:radial-gradient(circle,#8b5cf655,transparent 70%)}
+.lgc{position:relative;max-width:440px;min-height:100vh;margin:0 auto;padding:56px 22px 28px;display:flex;flex-direction:column;text-align:center}
+.lgback{position:absolute;top:16px;left:14px;width:44px;height:44px;border:0;border-radius:14px;background:transparent;color:#1557e6;display:grid;place-items:center}
+.lglogo{display:flex;justify-content:center}.lglogo img{width:110px;height:110px;border-radius:26px;box-shadow:0 10px 28px rgba(21,87,230,.25)}.lglogo.big img{width:150px;height:150px;border-radius:34px}
+.lgtxt b{display:block;font-size:34px;color:#1557e6;font-weight:800;line-height:1.1}.lgtxt span{font-size:18px;color:#14224a;font-weight:700}
+.lgw h1{font-size:23px;margin:16px 0 4px;font-weight:800}.lgw h2{font-size:22px;margin:14px 0 4px;font-weight:800}
+.lgsub{color:#5b6b92;margin:0 0 18px;font-size:14px}
+.lgart{width:100%;max-width:320px;margin:4px auto 18px}
+.lgfield{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #d9e2fb;border-radius:16px;padding:0 14px;height:56px;margin-bottom:12px;box-shadow:0 2px 8px rgba(21,87,230,.06)}
+.lgfield input,.lgfield select{flex:1;border:0;background:transparent;font:inherit;font-size:15px;color:#14224a;margin:0;padding:0;height:100%;outline:none;width:auto;min-width:0}
+.lgi{color:#1557e6;display:flex}.lgeye{border:0;background:transparent;color:#8a97bf;display:flex;padding:0}
+.lgbtn{display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:16px;border:0;background:linear-gradient(135deg,#1557e6,#2a73ff);color:#fff;font:inherit;font-weight:700;font-size:17px;box-shadow:0 8px 20px rgba(21,87,230,.3);margin:6px 0;width:100%}
+.lgbtn.out{background:#fff;color:#1557e6;border:1.5px solid #1557e6;box-shadow:none}.lgbtn[disabled]{opacity:.6}
+.lgsmall{width:auto;padding:0 32px;align-self:center;height:48px;margin-top:10px}
+.lgcard{display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #cfdcff;border-radius:20px;padding:14px;margin-bottom:14px;text-align:right;box-shadow:0 6px 18px rgba(21,87,230,.08);cursor:pointer}
+.lgcard.p{border-color:#d6c9ff;background:#f8f5ff}
+.lgav{width:72px;height:72px;border-radius:50%;background:#e8efff;display:grid;place-items:center;font-size:38px;flex:none}
+.lgcard b{display:block;font-size:18px}.lgcard span{color:#5b6b92;font-size:13px}.lgcard .lgchev{color:#1557e6}
+.lghelp{display:flex;justify-content:center;align-items:center;gap:6px;color:#14224a;margin-top:14px;cursor:pointer;font-weight:600}
+.lgnote{color:#5b6b92;font-size:13px}.lgnote a{color:#1557e6;font-weight:700;cursor:pointer}
+.lgshield{font-size:90px;opacity:.13;margin-top:18px}
+.lgmodal,.lgload{position:fixed;inset:0;z-index:99;background:rgba(20,34,74,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;font-family:'Cairo',system-ui,sans-serif}
+.lgmbox{background:#fff;border-radius:22px;padding:24px 20px;max-width:360px;width:100%;text-align:center;color:#14224a;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.lgmbox h3{margin:0 0 8px;font-size:20px}.lgmmsg{color:#5b6b92;margin-bottom:16px;line-height:1.7}
+.lgmic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:32px;font-weight:800;color:#fff;margin:0 auto 12px}
+.lgmic.error{background:#ef4444}.lgmic.warn{background:#f59e0b}.lgmic.success{background:#17a673}.lgmic.info{background:#1557e6}
+.lghl{text-align:right;padding-inline-start:20px;margin:0}.lghl li{margin-bottom:6px}
+.lgspin{width:44px;height:44px;border:4px solid #d9e2fb;border-top-color:#1557e6;border-radius:50%;animation:lgs 1s linear infinite;margin:14px auto}
+@keyframes lgs{to{transform:rotate(360deg)}}
